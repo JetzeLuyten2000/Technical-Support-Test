@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
 from ...models import Vessel
+from django.db import transaction
 import threading
 
 
@@ -13,25 +14,47 @@ class Command(BaseCommand):
 
     def run_simulation(self):
         barrier = threading.Barrier(2)
+        
+        if Vessel.objects.get(id=1).content >= 1:
+            def user1():
+                barrier.wait()
+                with transaction.atomic():
+                    vessel = Vessel.objects.select_for_update().get(id=1)
+                    if vessel.content > 0:
+                        vessel.content -= 10.0
+                        vessel.save()
+                    else:
+                        self.stdout.write(f"Vessel is empty and further withdrawals are not possible")
 
-        def user1():
-            barrier.wait()
+            def user2():
+                barrier.wait()
+                with transaction.atomic():
+                    vessel = Vessel.objects.select_for_update().get(id=1)
+                    if vessel.content > 0:
+                        vessel.content -= 10.0
+                        vessel.save()
+                    else:
+                        self.stdout.write(f"Vessel is empty and further withdrawals are not possible")
+
+            def user3():
+                barrier.wait()
+                with transaction.atomic():
+                    vessel = Vessel.objects.select_for_update().get(id=1)
+                    if vessel.content > 0:
+                        vessel.content -= 10.0
+                        vessel.save()
+                    else:
+                        self.stdout.write(f"Vessel is empty and further withdrawals are not possible")
+
+            t1 = threading.Thread(target=user1)
+            t2 = threading.Thread(target=user2)
+            t1.start()
+            t2.start()
+            t1.join()
+            t2.join()
+            
             vessel = Vessel.objects.get(id=1)
-            vessel.content -= 10.0
-            vessel.save()
-
-        def user2():
-            barrier.wait()
-            vessel = Vessel.objects.get(id=1)
-            vessel.content -= 10.0
-            vessel.save()
-
-        t1 = threading.Thread(target=user1)
-        t2 = threading.Thread(target=user2)
-        t1.start()
-        t2.start()
-        t1.join()
-        t2.join()
-
-        vessel = Vessel.objects.get(id=1)
-        self.stdout.write(f"Remaining content: {vessel.content} kg")
+            if vessel.content > 0:
+                self.stdout.write(f"Remaining content: {vessel.content} kg")
+        else:
+            self.stdout.write(f"Vessel is empty and further withdrawals are not possible")
