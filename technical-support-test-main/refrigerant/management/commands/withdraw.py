@@ -15,7 +15,7 @@ class Command(BaseCommand):
     def run_simulation(self):
         barrier = threading.Barrier(2)
         
-        if Vessel.objects.get(id=1).content >= 1:
+        if Vessel.objects.get(id=1).content > 0:
             def user1():
                 barrier.wait()
                 with transaction.atomic():
